@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aim Royale PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            background: #0e0e0e;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        #gameArea {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #target {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #00ffc8, #006666);
+            box-shadow: 0 0 25px #00ffc8, inset 0 0 10px #006666;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        #target:active {
+            transform: scale(0.8);
+        }
+
+        #scoreboard {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 20px;
+            color: #ffffff;
+            z-index: 2;
+        }
+
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 3;
+            color: #00ffc8;
+            text-align: center;
+        }
+
+        .screen button {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 50px;
+            background: #00ffc8;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 15px #00ffc8;
+        }
+
+        .hit-effect {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: pulse 0.4s ease-out forwards;
+            background: rgba(0, 255, 200, 0.3);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(-5px, 5px);
+            }
+
+            50% {
+                transform: translate(5px, -5px);
+            }
+
+            75% {
+                transform: translate(-5px, -5px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="particles"></canvas>
+
+    <div id="gameArea">
+        <div id="target"></div>
+    </div>
+
+    <div id="scoreboard">
+        Skor: <span id="score">0</span> | Rekor: <span id="highscore">0</span> | Seviye: <span id="level">1</span>
+    </div>
+
+    <div id="startScreen" class="screen">
+        <h1>AIM ROYALE PRO</h1>
+        <p>Hazır mısın? Hedefleri yakala!</p>
+        <button onclick="startGame()">Başla</button>
+    </div>
+
+    <div id="endScreen" class="screen" style="display:none;">
+        <h1>Oyun Bitti!</h1>
+        <p>Skorun: <span id="finalScore">0</span></p>
+        <button onclick="startGame()">Yeniden Başla</button>
+    </div>
+
+    <!-- 🔊 ÇALIŞAN SES -->
+    <audio id="hitSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+
+    <script>
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function createParticles() {
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 2 + 1,
+                    dx: (Math.random() - 0.5) * 0.5,
+                    dy: (Math.random() - 0.5) * 0.5,
+                });
+            }
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#00ffc8";
+            for (let p of particles) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+                p.x += p.dx;
+                p.y += p.dy;
+                if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+            }
+            requestAnimationFrame(drawParticles);
+        }
+
+        createParticles();
+        drawParticles();
+
+        const target = document.getElementById('target');
+        const scoreEl = document.getElementById('score');
+        const highscoreEl = document.getElementById('highscore');
+        const levelEl = document.getElementById('level');
+        const finalScoreEl = document.getElementById('finalScore');
+        const hitSound = document.getElementById('hitSound');
+
+        let score = 0;
+        let highscore = localStorage.getItem('aimHigh') || 0;
+        let level = 1;
+        let speed = 1500;
+        let interval;
+        let running = false;
+
+        function randomPos() {
+            const x = Math.random() * (window.innerWidth - 80);
+            const y = Math.random() * (window.innerHeight - 80);
+            target.style.transform = `translate(${x}px, ${y}px)`;
+        }
+
+        function hitEffect() {
+            const rect = target.getBoundingClientRect();
+            const fx = document.createElement('div');
+            fx.className = 'hit-effect';
+            fx.style.left = `${rect.left}px`;
+            fx.style.top = `${rect.top}px`;
+            fx.style.width = `${rect.width}px`;
+            fx.style.height = `${rect.height}px`;
+            document.body.appendChild(fx);
+            setTimeout(() => fx.remove(), 400);
+            document.body.style.animation = 'shake 0.3s';
+            setTimeout(() => document.body.style.animation = '', 300);
+        }
+
+        function targetHit() {
+            if (!running) return;
+            score++;
+            scoreEl.textContent = score;
+            hitEffect();
+            hitSound.currentTime = 0;
+            hitSound.play();
+
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('aimHigh', highscore);
+                highscoreEl.textContent = highscore;
+            }
+
+            if (score % 5 === 0) {
+                level++;
+                levelEl.textContent = level;
+                speed = Math.max(400, speed - 150);
+                clearInterval(interval);
+                interval = setInterval(randomPos, speed);
+            }
+
+            randomPos();
+        }
+
+        target.addEventListener('click', targetHit);
+        target.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            targetHit();
+        }, { passive: false });
+
+        function startGame() {
+            score = 0;
+            level = 1;
+            speed = 1500;
+            scoreEl.textContent = 0;
+            levelEl.textContent = 1;
+            highscoreEl.textContent = highscore;
+
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('endScreen').style.display = 'none';
+            target.style.display = 'block';
+            running = true;
+            randomPos();
+            interval = setInterval(randomPos, speed);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                running = false;
+                finalScoreEl.textContent = score;
+                document.getElementById('endScreen').style.display = 'flex';
+            }, 60000); // 60 saniye sonra oyun biter
+        }
+    </script>
+
+</body>
+
+</html>
